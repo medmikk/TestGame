@@ -10,7 +10,7 @@ from client.frame_qt import Frame
 class ClientLogic:
 
     def __init__(self):
-        self.__port = 228
+        self.__port = 230
         self.__host = socket.gethostbyname(socket.gethostname())
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__socket.bind((self.__host, self.__port))

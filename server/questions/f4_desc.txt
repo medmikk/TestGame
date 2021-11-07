@@ -1,1 +1,1 @@
-Решето Эратосфена
+Eratosthenes sieve

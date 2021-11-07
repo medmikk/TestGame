@@ -1,1 +1,1 @@
-Алгоритм Евклида
+Euclid algorithm

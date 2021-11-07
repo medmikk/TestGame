@@ -1,4 +1,4 @@
-from typing import List
+import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QThread
 
@@ -9,18 +9,31 @@ class Receiving(QThread):
     def __init__(self, main_window, sock, parent=None):
         super(Receiving, self).__init__()
         self.__main_window = main_window
-
+        self.__working = True
+        self.__socket = sock
+        self.data = None
 
     def run(self):
-        pass
+        while self.__working:
+            try:
+                while True:
+                    data, addr = self.__socket.recvfrom(1024)
+                    print(data.decode("utf-8"))
+                    if data is not None:
+                        f_data = str(data.decode("utf-8")).split("###")
+                        self.data = f_data
+            except Exception:
+                pass
 
 
 class Frame(QtWidgets.QMainWindow):
     def __init__(self):
         super(Frame, self).__init__()
         self.__client = ClientLogic()
-        self.__client.start_thread()
+        self.setup_ui()
 
+        self.__thread = Receiving(self, self.__client.socket)
+        self.__thread.start()
 
     def setup_ui(self):
         self.resize(800, 600)
@@ -37,7 +50,7 @@ class Frame(QtWidgets.QMainWindow):
 
         self.new_game_btn = QtWidgets.QPushButton(self.centralwidget)
         self.new_game_btn.setMinimumSize(QtCore.QSize(150, 50))
-        self.new_game_btn.clicked.connect(lambda: self.__client.send_request())
+        self.new_game_btn.clicked.connect(self.set_ui)
 
         self.verticalLayout_2.addWidget(self.new_game_btn)
         self.disc_lbl = QtWidgets.QLabel(self.centralwidget)
@@ -47,8 +60,9 @@ class Frame(QtWidgets.QMainWindow):
         self.verticalLayout_2.addItem(spacerItem)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.send_btn = QtWidgets.QPushButton(self.centralwidget)
-
         self.verticalLayout.addWidget(self.send_btn)
+        self.send_btn.clicked.connect(self.send_text)
+
         self.exit_btn = QtWidgets.QPushButton(self.centralwidget)
 
         self.verticalLayout.addWidget(self.exit_btn)
@@ -67,10 +81,18 @@ class Frame(QtWidgets.QMainWindow):
         self.retranslateUi()
         QtCore.QMetaObject.connectSlotsByName(self)
 
+    def set_ui(self):
+        # self.__client.send_request("ready")
+        # time.sleep(0.2)
+        self.__client.send_request("ready")
+        time.sleep(1)
+        data = self.__thread.data
+        if data[0] == "task":
+            self.textEdit.setText(data[1])
+            self.disc_lbl.setText(data[2])
 
-    def set_ui(self, data: List[str]):
-        self.textEdit.setText(data[0])
-        self.disc_lbl.setText(data[1])
+    def send_text(self):
+        self.__client.send_request(f"answer@@@{self.textEdit.toPlainText()}")
 
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate

@@ -46,10 +46,11 @@ class Server:
 
         if data[0] == "ready":
             if addr not in self.__ready_players:
+                #number of task
                 self.__ready_players[addr] = 0
-            if len(self.__ready_players) >= 1:
+            if len(self.__ready_players) >= 2:
                 number = randint(1, 4)
-                number = 3 #TODO убрать
+                #number = 3 #TODO убрать
                 self.__ready_players[addr] = number
                 self.__response = f"task###{self.get_question(number)}###{self.get_desc(number)}"
                 for player_addr in self.__ready_players.keys():
@@ -61,7 +62,21 @@ class Server:
 
     def send_result(self, ans, addr):
         self.__response = ans
+        if ans is None:
+            self.__response = "import error"
+        if self.__response == "win":
+            self.end_game(addr)
+        else:
+            self.__sock.sendto(self.__response.encode("utf-8"), addr)
+
+    def end_game(self, addr):
         self.__sock.sendto(self.__response.encode("utf-8"), addr)
+        self.__response = "lose"
+        for player_addr in self.__ready_players.keys():
+            if player_addr != addr:
+                self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
+        self.__ready_players = {}
+
 
     #TODO Refact
     def check_answer(self, num, data):
@@ -73,20 +88,20 @@ class Server:
                 a = randint(-1000, 1000)
                 b = randint(-1000, 1000)
                 try:
-                    assert (f1_true(a, b) == res.f1(a, b))
-                    return "you failed"
-                except AssertionError:
-                    return "assertion error"
+                    if f1_true(a, b) == res.f1(a, b):
+                        return "win"
+                    else:
+                        return "assertion error"
                 except Exception:
                     return "syntax error"
 
             elif num == 2:
                 l = [randint(-100, 200) for _ in range(10)]
                 try:
-                    assert (f2_true(l) == res.f2(l))
-                    return "you failed"
-                except AssertionError:
-                    return "assertion error"
+                    if f2_true(l) == res.f2(l):
+                        return "win"
+                    else:
+                        return "assertion error"
                 except Exception:
                     return "syntax error"
 
@@ -94,26 +109,25 @@ class Server:
                 a = randint(0, 1000)
                 b = randint(0, 1000)
                 try:
-                    print(f3_true(a, b), "   ", res.f3(a, b))
                     if f3_true(a, b) == res.f3(a, b):
                         return "win"
                     else:
-                        return "you failed"
-                except AssertionError:
-                    return "assertion error"
+                        return "assertion error"
                 except Exception:
                     return "syntax error"
 
             elif num == 4:
                 a = randint(1, 1000)
                 try:
-                    assert (f4_true(a) == res.f4(a))
-                    return "you failed"
-                except AssertionError:
-                    return "assertion error"
+                    if (f4_true(a) == res.f4(a)):
+                        return "win"
+                    else:
+                        return "assertion error"
                 except Exception:
                     return "syntax error"
-        except ImportError:
+        except Exception as e:
+            print(e)
+            file.write("")
             return "import error"
 
     def get_question(self, num) -> str:

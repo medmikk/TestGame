@@ -2,7 +2,7 @@ import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QThread
 
-from client.client_logic import ClientLogic
+from client_logic import ClientLogic
 
 
 class Receiving(QThread):
@@ -85,11 +85,13 @@ class Frame(QtWidgets.QMainWindow):
         # self.__client.send_request("ready")
         # time.sleep(0.2)
         self.__client.send_request("ready")
-        time.sleep(1)
-        data = self.__thread.data
-        if data[0] == "task":
-            self.textEdit.setText(data[1])
-            self.disc_lbl.setText(data[2])
+        while self.__thread.data is None:
+            continue
+        if self.__thread.data[0] == "task":
+            self.new_game_btn.setDisabled(True)
+            self.send_btn.setDisabled(False)
+            self.textEdit.setText(self.__thread.data[1])
+            self.disc_lbl.setText(self.__thread.data[2])
 
     def send_text(self):
         self.__client.send_request(f"answer@@@{self.textEdit.toPlainText()}")

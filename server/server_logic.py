@@ -35,19 +35,20 @@ class Server:
                 if addr not in self.__clients:
                     print(f"connected from {addr}")
                     self.__clients.append(addr)
-
+                data = str(data.decode("utf-8")).split("@@@")
+                if data[0] == "exit":
+                    break
                 self.request_handler(data, addr)
 
             except KeyboardInterrupt as e:
                 print("Stop working")
                 working = False
 
-    def request_handler(self, data: bytes, addr):
-        data = str(data.decode("utf-8")).split("@@@")
-
+    def request_handler(self, data: List[str], addr):
         if data[0] == "ready":
             if addr not in self.__ready_players:
                 # number of task
+                print(f"Ready {addr}")
                 self.__ready_players[addr] = 0
             if len(self.__ready_players) >= 2:
 
@@ -148,9 +149,12 @@ class Server:
         return question
 
     def get_desc(self, num) -> str:
-        with open(f"questions\\f{num}_desc.txt") as file:
-            desc = file.read()
-
+        try:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            with open(f"{dir_path}\\questions\\f{num}_desc.txt") as file:
+                desc = file.read()
+        except Exception:
+            desc = ""
         return desc
 
     def __del__(self):

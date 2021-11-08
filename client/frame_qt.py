@@ -1,5 +1,5 @@
-import time
-from PyQt5 import QtCore, QtGui, QtWidgets
+import sys
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QThread, QObject
 
 from client_logic import ClientLogic
@@ -74,6 +74,7 @@ class Frame(QtWidgets.QMainWindow):
         self.send_btn.clicked.connect(self.send_text)
         self.send_btn.setDisabled(True)
         self.exit_btn = QtWidgets.QPushButton(self.centralwidget)
+        self.exit_btn.clicked.connect(sys.exit)
 
         self.verticalLayout.addWidget(self.exit_btn)
         self.verticalLayout_2.addLayout(self.verticalLayout)
@@ -94,8 +95,6 @@ class Frame(QtWidgets.QMainWindow):
     def set_ui(self):
         self.disc_lbl.setText("waiting for other players")
         self.__client.send_request("ready")
-        print("fdfsfdsfs from setui")
-
 
     def send_text(self):
         self.__client.send_request(f"answer@@@{self.textEdit.toPlainText()}")
@@ -120,11 +119,17 @@ class Frame(QtWidgets.QMainWindow):
     def get_new_task(self, task: str):
         task = task.split("###")
         if task[0] == "task":
-
             self.new_game_btn.setDisabled(True)
             self.send_btn.setDisabled(False)
             self.textEdit.setText(task[1])
             self.disc_lbl.setText(task[2])
+
+    def exit_(self):
+        self.__client.send_request("exit")
+
+    @property
+    def thread_(self):
+        return self.__thread
 
 
 class AlertBox(QtWidgets.QMessageBox):

@@ -82,8 +82,7 @@ class Frame(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def set_ui(self):
-        # self.__client.send_request("ready")
-        # time.sleep(0.2)
+        self.disc_lbl.setText("waiting for other players")
         self.__client.send_request("ready")
         while self.__thread.data is None:
             continue

@@ -63,15 +63,15 @@ class Server:
     def send_result(self, ans, addr):
         self.__response = ans
         if ans is None:
-            self.__response = "import error"
-        if self.__response == "win":
+            self.__response = "result###import error"
+        elif self.__response == "result###win":
             self.end_game(addr)
         else:
             self.__sock.sendto(self.__response.encode("utf-8"), addr)
 
     def end_game(self, addr):
         self.__sock.sendto(self.__response.encode("utf-8"), addr)
-        self.__response = "lose"
+        self.__response = "result###lose"
         for player_addr in self.__ready_players.keys():
             if player_addr != addr:
                 self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
@@ -127,7 +127,6 @@ class Server:
                     return "syntax error"
         except Exception as e:
             print(e)
-            file.write("")
             return "import error"
 
     def get_question(self, num) -> str:
@@ -145,6 +144,8 @@ class Server:
         return desc
 
     def __del__(self):
+        with open(f"questions\\tmp.py", "w") as file:
+            file.write("")
         if self.__sock:
             print("Closed")
             self.__sock.close()

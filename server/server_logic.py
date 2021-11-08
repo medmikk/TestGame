@@ -1,22 +1,22 @@
+import os
 import socket
 import importlib
 from typing import List, Dict
 from random import randint
-from server.questions.f1_true import f1_true
-from server.questions.f2_true import f2_true
-from server.questions.f3_true import f3_true
-from server.questions.f4_true import f4_true
+from server.questions.answers import *
 import server.questions.tmp as res
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, port=228):
         self.__host = socket.gethostbyname(socket.gethostname())
-        self.__port = 228
+        self.__port = port
         self.__clients: List[int] = []  # collect addresses of clients
         self.__sock = None
         self.__ready_players: Dict[int, int] = {}  # key - address value - task number
         self.__response = ""
+        self.__is_game_started = False
+        self.__current_task = 0
 
     def __init_socket(self):
         self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -50,15 +50,20 @@ class Server:
                 # number of task
                 self.__ready_players[addr] = 0
             if len(self.__ready_players) >= 2:
-                number = randint(1, 4)
-                # number = 3 #TODO убрать
-                self.__ready_players[addr] = number
-                self.__response = f"task###{self.get_question(number)}###{self.get_desc(number)}"
-                for player_addr in self.__ready_players.keys():
-                    self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
+
+                if not self.__is_game_started:
+                    self.__current_task = randint(1, 4)
+                    self.__is_game_started = True
+                    self.__response = f"task###{self.get_question(self.__current_task)}###{self.get_desc(self.__current_task)}"
+                    self.__ready_players[addr] = self.__current_task
+                    for player_addr in self.__ready_players.keys():
+                        self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
+                        print(self.__response)
+                else:
+                    self.__response = f"task###{self.get_question(self.__current_task)}###{self.get_desc(self.__current_task)}"
+                    self.__sock.sendto(self.__response.encode("utf-8"), addr)
         elif data[0] == "answer":
-            num = self.__ready_players[addr]
-            ans = self.check_answer(num, data[1])
+            ans = self.check_answer(self.__current_task, data[1])
             self.send_result(ans, addr)
 
     def send_result(self, ans, addr):
@@ -77,6 +82,8 @@ class Server:
             if player_addr != addr:
                 self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
         self.__ready_players = {}
+        self.__current_task = 0
+        self.__is_game_started = False
 
     # TODO Refact
     def check_answer(self, num, data):
@@ -119,7 +126,7 @@ class Server:
             elif num == 4:
                 a = randint(1, 1000)
                 try:
-                    if (f4_true(a) == res.f4(a)):
+                    if f4_true(a) == res.f4(a):
                         return "win"
                     else:
                         return "assertion error"
@@ -127,11 +134,14 @@ class Server:
                     return "syntax error"
         except Exception as e:
             print(e)
+            with open(f"questions\\tmp.py", "w") as file:
+                file.write("")
             return "import error"
 
     def get_question(self, num) -> str:
         try:
-            with open(f"questions\\f{num}.py") as file:
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            with open(f"{dir_path}\\questions\\f{num}.py") as file:
                 question = file.read()
         except Exception:
             question = ""
@@ -144,8 +154,6 @@ class Server:
         return desc
 
     def __del__(self):
-        with open(f"questions\\tmp.py", "w") as file:
-            file.write("")
         if self.__sock:
             print("Closed")
             self.__sock.close()

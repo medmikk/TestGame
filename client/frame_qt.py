@@ -1,11 +1,14 @@
 import time
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, QObject
 
 from client_logic import ClientLogic
 
 
 class Receiving(QThread):
+    game_result = QtCore.pyqtSignal(str)
+    new_game_task = QtCore.pyqtSignal(str)
+
     def __init__(self, main_window, sock, parent=None):
         super(Receiving, self).__init__()
         self.__main_window = main_window
@@ -18,10 +21,15 @@ class Receiving(QThread):
             try:
                 while True:
                     data, addr = self.__socket.recvfrom(1024)
-                    print(data.decode("utf-8"))
                     if data is not None:
-                        f_data = str(data.decode("utf-8")).split("###")
+                        str_data = str(data.decode("utf-8"))
+                        f_data = str_data.split("###")
+
                         self.data = f_data
+                        if self.data[0] == "result":
+                            self.game_result.emit(self.data[1])
+                        elif self.data[0] == "task":
+                            self.new_game_task.emit(str_data)
             except Exception:
                 pass
 
@@ -33,6 +41,8 @@ class Frame(QtWidgets.QMainWindow):
         self.setup_ui()
 
         self.__thread = Receiving(self, self.__client.socket)
+        self.__thread.game_result.connect(self.get_result)
+        self.__thread.new_game_task.connect(self.get_new_task)
         self.__thread.start()
 
     def setup_ui(self):
@@ -84,13 +94,8 @@ class Frame(QtWidgets.QMainWindow):
     def set_ui(self):
         self.disc_lbl.setText("waiting for other players")
         self.__client.send_request("ready")
-        while self.__thread.data is None:
-            continue
-        if self.__thread.data[0] == "task":
-            self.new_game_btn.setDisabled(True)
-            self.send_btn.setDisabled(False)
-            self.textEdit.setText(self.__thread.data[1])
-            self.disc_lbl.setText(self.__thread.data[2])
+        print("fdfsfdsfs from setui")
+
 
     def send_text(self):
         self.__client.send_request(f"answer@@@{self.textEdit.toPlainText()}")
@@ -103,9 +108,32 @@ class Frame(QtWidgets.QMainWindow):
         self.send_btn.setText(_translate("MainWindow", "Send"))
         self.exit_btn.setText(_translate("MainWindow", "Exit"))
 
-    @QtCore.pyqtSlot(str, object)
-    def set_game_text(self, data):
-        pass
+    @QtCore.pyqtSlot(str)
+    def get_result(self, data):
+        if data == "lose" or data == "win":
+            self.textEdit.clear()
+            self.new_game_btn.setDisabled(False)
+            self.send_btn.setDisabled(True)
+        AlertBox(f"U {data}")
+
+    @QtCore.pyqtSlot(str)
+    def get_new_task(self, task: str):
+        task = task.split("###")
+        if task[0] == "task":
+
+            self.new_game_btn.setDisabled(True)
+            self.send_btn.setDisabled(False)
+            self.textEdit.setText(task[1])
+            self.disc_lbl.setText(task[2])
+
+
+class AlertBox(QtWidgets.QMessageBox):
+    def __init__(self, error_text, description=""):
+        super(AlertBox, self).__init__()
+        self.setText(error_text)
+        self.setInformativeText(description)
+        self.setWindowTitle("Game result")
+        self.exec_()
 
 
 if __name__ == "__main__":

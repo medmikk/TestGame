@@ -1,5 +1,6 @@
 import socket
 import importlib
+from typing import List, Dict
 from random import randint
 from server.questions.f1_true import f1_true
 from server.questions.f2_true import f2_true
@@ -12,9 +13,9 @@ class Server:
     def __init__(self):
         self.__host = socket.gethostbyname(socket.gethostname())
         self.__port = 228
-        self.__clients = []
+        self.__clients: List[int] = []  # collect addresses of clients
         self.__sock = None
-        self.__ready_players = {}
+        self.__ready_players: Dict[int, int] = {}  # key - address value - task number
         self.__response = ""
 
     def __init_socket(self):
@@ -46,11 +47,11 @@ class Server:
 
         if data[0] == "ready":
             if addr not in self.__ready_players:
-                #number of task
+                # number of task
                 self.__ready_players[addr] = 0
             if len(self.__ready_players) >= 2:
                 number = randint(1, 4)
-                #number = 3 #TODO убрать
+                # number = 3 #TODO убрать
                 self.__ready_players[addr] = number
                 self.__response = f"task###{self.get_question(number)}###{self.get_desc(number)}"
                 for player_addr in self.__ready_players.keys():
@@ -61,7 +62,7 @@ class Server:
             self.send_result(ans, addr)
 
     def send_result(self, ans, addr):
-        self.__response = ans
+        self.__response = f"result###{ans}"
         if ans is None:
             self.__response = "result###import error"
         elif self.__response == "result###win":
@@ -77,8 +78,7 @@ class Server:
                 self.__sock.sendto(self.__response.encode("utf-8"), player_addr)
         self.__ready_players = {}
 
-
-    #TODO Refact
+    # TODO Refact
     def check_answer(self, num, data):
         with open(f"questions\\tmp.py", "w") as file:
             file.write(data)

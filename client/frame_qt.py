@@ -62,7 +62,7 @@ class Frame(QtWidgets.QMainWindow):
         self.send_btn = QtWidgets.QPushButton(self.centralwidget)
         self.verticalLayout.addWidget(self.send_btn)
         self.send_btn.clicked.connect(self.send_text)
-
+        self.send_btn.setDisabled(True)
         self.exit_btn = QtWidgets.QPushButton(self.centralwidget)
 
         self.verticalLayout.addWidget(self.exit_btn)
@@ -103,6 +103,10 @@ class Frame(QtWidgets.QMainWindow):
         self.disc_lbl.setText(_translate("MainWindow", "TextLabel"))
         self.send_btn.setText(_translate("MainWindow", "Send"))
         self.exit_btn.setText(_translate("MainWindow", "Exit"))
+
+    @QtCore.pyqtSlot(str, object)
+    def set_game_text(self, data):
+        pass
 
 
 if __name__ == "__main__":
